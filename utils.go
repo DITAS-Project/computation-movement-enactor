@@ -2,6 +2,9 @@ package main
 
 import "fmt"
 
+// GetParamsMap gets a map of values from a list of keys that are mandatory.
+// It returns an error if a parameter is not found.
+// The function as argument must return the value of the parameter or an empty string if it's not found.
 func GetParamsMap(getter func(string) string, params ...string) (map[string]string, error) {
 	result := make(map[string]string)
 	for _, param := range params {

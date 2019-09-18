@@ -9,7 +9,9 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-type httpError struct {
+// HTTPError is the representation of an error that arises from a HTTP call.
+// It contains the error code and the error message
+type HTTPError struct {
 	code int
 	body error
 }
@@ -24,15 +26,19 @@ type vdcConfiguration struct {
 	Infrastructures map[string]infrastructureInformation
 }
 
-type movementController struct {
+// MovementController is the structure to control movement of VDCs
+type MovementController struct {
 	deploymentEngineURL    string
 	tombstonePrefix        string
 	deploymentEngineClient *resty.Client
 	tombstoneClient        *resty.Client
 }
 
-func NewMovementController(deploymentEngineURL, preSharedKey string, tombstoneSecure bool) (*movementController, error) {
-	result := movementController{
+// NewMovementController creates a new Computation Movement Controller
+// with the deployment engine location, a pre shared key to sign the tombstone requests and a
+// boolean to indicate if it should communicate with the tombstone service in a secure (https) or insecure manner (http)
+func NewMovementController(deploymentEngineURL, preSharedKey string, tombstoneSecure bool) (*MovementController, error) {
+	result := MovementController{
 		deploymentEngineURL:    deploymentEngineURL,
 		deploymentEngineClient: resty.New(),
 		tombstonePrefix:        "http",
@@ -57,15 +63,15 @@ func NewMovementController(deploymentEngineURL, preSharedKey string, tombstoneSe
 	return &result, nil
 }
 
-func (c *movementController) decodeError(resp *resty.Response, err error) *httpError {
+func (c *MovementController) decodeError(resp *resty.Response, err error) *HTTPError {
 	if err != nil {
-		return &httpError{
+		return &HTTPError{
 			code: http.StatusInternalServerError,
 			body: err,
 		}
 	}
 	if resp.IsError() {
-		return &httpError{
+		return &HTTPError{
 			code: resp.StatusCode(),
 			body: errors.New(string(resp.Body())),
 		}
@@ -73,29 +79,29 @@ func (c *movementController) decodeError(resp *resty.Response, err error) *httpE
 	return nil
 }
 
-func (c *movementController) getVDCInfo(blueprintID, vdcID string) (vdcConfiguration, *httpError) {
+func (c *MovementController) getVDCInfo(blueprintID, vdcID string) (vdcConfiguration, *HTTPError) {
 	url := fmt.Sprintf("%s/blueprint/%s/vdc/%s", c.deploymentEngineURL, blueprintID, vdcID)
 	var config vdcConfiguration
 	err := c.decodeError(c.deploymentEngineClient.R().SetResult(&config).Get(url))
 	return config, err
 }
 
-func (c *movementController) moveVDC(blueprintID, vdcID, targetInfra string) (vdcConfiguration, *httpError) {
+func (c *MovementController) moveVDC(blueprintID, vdcID, targetInfra string) (vdcConfiguration, *HTTPError) {
 	url := fmt.Sprintf("%s/blueprint/%s/vdc/%s?targetInfra=%s", c.deploymentEngineURL, blueprintID, vdcID, targetInfra)
 	var config vdcConfiguration
 	err := c.decodeError(c.deploymentEngineClient.R().SetResult(&config).Put(url))
 	return config, err
 }
 
-func (c *movementController) getTombstoneURL(ip string, port int, path string) string {
+func (c *MovementController) getTombstoneURL(ip string, port int, path string) string {
 	return fmt.Sprintf("%s://%s:%d/%s", c.tombstonePrefix, ip, port, path)
 }
 
-func (c *movementController) setReviveMode(ip string, port int) *httpError {
+func (c *MovementController) setReviveMode(ip string, port int) *HTTPError {
 	return c.decodeError(c.tombstoneClient.R().Post(c.getTombstoneURL(ip, port, "revive")))
 }
 
-func (c *movementController) setRedirectMode(ip string, port int, targetIP string, targetPort int) *httpError {
+func (c *MovementController) setRedirectMode(ip string, port int, targetIP string, targetPort int) *HTTPError {
 	request := c.tombstoneClient.R().SetBody(fmt.Sprintf("%s:%d", targetIP, targetPort))
 	return c.decodeError(request.Post(c.getTombstoneURL(ip, port, "tombstone")))
 }
@@ -105,14 +111,14 @@ func (c *movementController) setRedirectMode(ip string, port int, targetIP strin
 // - Setting it to "serve mode" if it already exists
 // - Setting the VDC in the source infrastructure to "redirect mode" to the one in the target infrastructure
 // - Returns the IP of the VDC copy serving requests
-func (c movementController) MoveVDC(blueprintID, vdcID, sourceInfraID, targetInfraID string) (string, *httpError) {
+func (c MovementController) MoveVDC(blueprintID, vdcID, sourceInfraID, targetInfraID string) (string, *HTTPError) {
 	config, err := c.getVDCInfo(blueprintID, vdcID)
 	if err != nil {
 		return "", err
 	}
 	sourceInfraConfig, ok := config.Infrastructures[sourceInfraID]
 	if !ok {
-		return "", &httpError{
+		return "", &HTTPError{
 			code: 500,
 			body: fmt.Errorf("Can't find VDC %s configuration in infrastructure %s", vdcID, sourceInfraID),
 		}
@@ -133,7 +139,7 @@ func (c movementController) MoveVDC(blueprintID, vdcID, sourceInfraID, targetInf
 
 	targetInfraConfig, ok = config.Infrastructures[targetInfraID]
 	if !ok {
-		return "", &httpError{
+		return "", &HTTPError{
 			code: 500,
 			body: fmt.Errorf("Can't find configuration of VDC %s in target infrastructure %s", vdcID, targetInfraID),
 		}

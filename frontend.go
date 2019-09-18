@@ -11,7 +11,7 @@ import (
 
 type mainHandler struct {
 	port               int
-	movementController *movementController
+	movementController *MovementController
 }
 
 func respond(w http.ResponseWriter, code int, payload []byte, contentType string) {

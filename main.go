@@ -5,13 +5,13 @@ import (
 )
 
 const (
-	DitasCMEPortProperty             = "port"
-	DitasDeploymentEngineURLProperty = "deployment_engine.url"
-	DitasPreSharedKeyProperty        = "sign.key"
-	DitasTombstoneSecureProperty     = "tombstone.use_ssl"
+	cMEPortProperty             = "port"
+	deploymentEngineURLProperty = "deployment_engine.url"
+	preSharedKeyProperty        = "sign.key"
+	tombstoneSecureProperty     = "tombstone.use_ssl"
 
-	DitasCMEPortDefaultValue         = 8080
-	DitasTombstoneSecureDefaultValue = false
+	cMEPortDefaultValue         = 8080
+	tombstoneSecureDefaultValue = false
 )
 
 func getProperties(pamams ...string) (map[string]string, error) {
@@ -23,22 +23,22 @@ func main() {
 	viper.SetConfigName("cme")
 	viper.AddConfigPath("/etc/ditas/")
 
-	viper.SetDefault(DitasCMEPortProperty, DitasCMEPortDefaultValue)
-	viper.SetDefault(DitasTombstoneSecureProperty, DitasTombstoneSecureDefaultValue)
+	viper.SetDefault(cMEPortProperty, cMEPortDefaultValue)
+	viper.SetDefault(tombstoneSecureProperty, tombstoneSecureDefaultValue)
 
 	viper.ReadInConfig()
 
-	properties, err := getProperties(DitasCMEPortProperty, DitasDeploymentEngineURLProperty, DitasPreSharedKeyProperty)
+	properties, err := getProperties(cMEPortProperty, deploymentEngineURLProperty, preSharedKeyProperty)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	port := viper.GetInt(DitasCMEPortProperty)
-	useSSL := viper.GetBool(DitasTombstoneSecureProperty)
+	port := viper.GetInt(cMEPortProperty)
+	useSSL := viper.GetBool(tombstoneSecureProperty)
 
-	deploymentEngineURL, _ := properties[DitasDeploymentEngineURLProperty]
+	deploymentEngineURL, _ := properties[deploymentEngineURLProperty]
 
-	preSharedKey, _ := properties[DitasPreSharedKeyProperty]
+	preSharedKey, _ := properties[preSharedKeyProperty]
 
 	movementController, err := NewMovementController(deploymentEngineURL, preSharedKey, useSSL)
 	if err != nil {
