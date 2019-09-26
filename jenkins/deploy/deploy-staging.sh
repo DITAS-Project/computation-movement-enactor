@@ -12,5 +12,5 @@ sudo docker stop --time 20 computation-movement-enactor || true
 sudo docker rm --force computation-movement-enactor || true
 sudo docker pull ditas/computation-movement-enactor:latest
 
-sudo docker run -p 50012:8080 -d --name computation-movement-enactor ditas/computation-movement-enactor:latest
+sudo docker run -p 30090:8080 -d --name computation-movement-enactor ditas/computation-movement-enactor:latest
 ENDSSH
