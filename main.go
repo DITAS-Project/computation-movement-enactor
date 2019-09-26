@@ -14,8 +14,8 @@ const (
 	tombstoneSecureDefaultValue = false
 )
 
-func getProperties(pamams ...string) (map[string]string, error) {
-	return GetParamsMap(viper.GetString)
+func getProperties(params ...string) (map[string]string, error) {
+	return GetParamsMap(viper.GetString, params...)
 }
 
 func main() {

@@ -111,35 +111,36 @@ func (c *MovementController) setRedirectMode(ip string, port int, targetIP strin
 // - Setting it to "serve mode" if it already exists
 // - Setting the VDC in the source infrastructure to "redirect mode" to the one in the target infrastructure
 // - Returns the IP of the VDC copy serving requests
-func (c MovementController) MoveVDC(blueprintID, vdcID, sourceInfraID, targetInfraID string) (string, *HTTPError) {
+func (c MovementController) MoveVDC(blueprintID, vdcID, sourceInfraID, targetInfraID string) (infrastructureInformation, *HTTPError) {
+	var targetInfraConfig infrastructureInformation
 	config, err := c.getVDCInfo(blueprintID, vdcID)
 	if err != nil {
-		return "", err
+		return targetInfraConfig, err
 	}
 	sourceInfraConfig, ok := config.Infrastructures[sourceInfraID]
 	if !ok {
-		return "", &HTTPError{
+		return targetInfraConfig, &HTTPError{
 			code: 500,
 			body: fmt.Errorf("Can't find VDC %s configuration in infrastructure %s", vdcID, sourceInfraID),
 		}
 	}
 
-	targetInfraConfig, ok := config.Infrastructures[targetInfraID]
+	targetInfraConfig, ok = config.Infrastructures[targetInfraID]
 	if ok {
 		err = c.setReviveMode(targetInfraConfig.IP, targetInfraConfig.TombstonePort)
 		if err != nil {
-			return "", err
+			return targetInfraConfig, err
 		}
 	} else {
 		config, err = c.moveVDC(blueprintID, vdcID, targetInfraID)
 		if err != nil {
-			return "", err
+			return targetInfraConfig, err
 		}
 	}
 
 	targetInfraConfig, ok = config.Infrastructures[targetInfraID]
 	if !ok {
-		return "", &HTTPError{
+		return targetInfraConfig, &HTTPError{
 			code: 500,
 			body: fmt.Errorf("Can't find configuration of VDC %s in target infrastructure %s", vdcID, targetInfraID),
 		}
@@ -147,5 +148,5 @@ func (c MovementController) MoveVDC(blueprintID, vdcID, sourceInfraID, targetInf
 
 	err = c.setRedirectMode(sourceInfraConfig.IP, sourceInfraConfig.TombstonePort, targetInfraConfig.IP, targetInfraConfig.CAFPort)
 
-	return targetInfraConfig.IP, err
+	return targetInfraConfig, err
 }
