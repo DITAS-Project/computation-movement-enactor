@@ -1,3 +1,20 @@
+/**
+ * Copyright 2018 Atos
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * This is being developed for the DITAS Project: https://www.ditas-project.eu/
+ */
 package main
 
 import (
@@ -16,10 +33,15 @@ type HTTPError struct {
 	body error
 }
 
+// infrastructureInformation contains information of a running VDC
+// swagger:model
 type infrastructureInformation struct {
-	IP            string
+	// IP of the infrastructure
+	IP string
+	// Port of the tombstone
 	TombstonePort int
-	CAFPort       int
+	// Port in which the CAF is serving
+	CAFPort int
 }
 
 type vdcConfiguration struct {
@@ -30,6 +52,7 @@ type vdcConfiguration struct {
 type MovementController struct {
 	deploymentEngineURL    string
 	tombstonePrefix        string
+	blueprintID            string
 	deploymentEngineClient *resty.Client
 	tombstoneClient        *resty.Client
 }
@@ -37,11 +60,12 @@ type MovementController struct {
 // NewMovementController creates a new Computation Movement Controller
 // with the deployment engine location, a pre shared key to sign the tombstone requests and a
 // boolean to indicate if it should communicate with the tombstone service in a secure (https) or insecure manner (http)
-func NewMovementController(deploymentEngineURL, preSharedKey string, tombstoneSecure bool) (*MovementController, error) {
+func NewMovementController(blueprintID, deploymentEngineURL, preSharedKey string, tombstoneSecure bool) (*MovementController, error) {
 	result := MovementController{
 		deploymentEngineURL:    deploymentEngineURL,
 		deploymentEngineClient: resty.New(),
 		tombstonePrefix:        "http",
+		blueprintID:            blueprintID,
 	}
 
 	if tombstoneSecure {
@@ -79,15 +103,15 @@ func (c *MovementController) decodeError(resp *resty.Response, err error) *HTTPE
 	return nil
 }
 
-func (c *MovementController) getVDCInfo(blueprintID, vdcID string) (vdcConfiguration, *HTTPError) {
-	url := fmt.Sprintf("%s/blueprint/%s/vdc/%s", c.deploymentEngineURL, blueprintID, vdcID)
+func (c *MovementController) getVDCInfo(vdcID string) (vdcConfiguration, *HTTPError) {
+	url := fmt.Sprintf("%s/blueprint/%s/vdc/%s", c.deploymentEngineURL, c.blueprintID, vdcID)
 	var config vdcConfiguration
 	err := c.decodeError(c.deploymentEngineClient.R().SetResult(&config).Get(url))
 	return config, err
 }
 
-func (c *MovementController) moveVDC(blueprintID, vdcID, targetInfra string) (vdcConfiguration, *HTTPError) {
-	url := fmt.Sprintf("%s/blueprint/%s/vdc/%s?targetInfra=%s", c.deploymentEngineURL, blueprintID, vdcID, targetInfra)
+func (c *MovementController) moveVDC(vdcID, targetInfra string) (vdcConfiguration, *HTTPError) {
+	url := fmt.Sprintf("%s/blueprint/%s/vdc/%s?targetInfra=%s", c.deploymentEngineURL, c.blueprintID, vdcID, targetInfra)
 	var config vdcConfiguration
 	err := c.decodeError(c.deploymentEngineClient.R().SetResult(&config).Put(url))
 	return config, err
@@ -111,9 +135,9 @@ func (c *MovementController) setRedirectMode(ip string, port int, targetIP strin
 // - Setting it to "serve mode" if it already exists
 // - Setting the VDC in the source infrastructure to "redirect mode" to the one in the target infrastructure
 // - Returns the IP of the VDC copy serving requests
-func (c MovementController) MoveVDC(blueprintID, vdcID, sourceInfraID, targetInfraID string) (infrastructureInformation, *HTTPError) {
+func (c MovementController) MoveVDC(vdcID, sourceInfraID, targetInfraID string) (infrastructureInformation, *HTTPError) {
 	var targetInfraConfig infrastructureInformation
-	config, err := c.getVDCInfo(blueprintID, vdcID)
+	config, err := c.getVDCInfo(vdcID)
 	if err != nil {
 		return targetInfraConfig, err
 	}
@@ -132,7 +156,7 @@ func (c MovementController) MoveVDC(blueprintID, vdcID, sourceInfraID, targetInf
 			return targetInfraConfig, err
 		}
 	} else {
-		config, err = c.moveVDC(blueprintID, vdcID, targetInfraID)
+		config, err = c.moveVDC(vdcID, targetInfraID)
 		if err != nil {
 			return targetInfraConfig, err
 		}

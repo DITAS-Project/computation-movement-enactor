@@ -1,0 +1,90 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Coordinates the movement of VDCs across clusters",
+    "title": "Computation Movement Enactor",
+    "license": {
+      "name": "Apache 2.0"
+    },
+    "version": "1.0"
+  },
+  "paths": {
+    "/vdc/{vdcId}": {
+      "put": {
+        "description": "Creating a copy of the VDC in the target infrastructure if it doesn't exist\nSetting it to \"serve mode\" if it already exists\nSetting the VDC in the source infrastructure to \"redirect mode\" to the one in the target infrastructure\nReturns the IP and port of the VDC copy serving requests",
+        "consumes": [
+          "text/plain"
+        ],
+        "produces": [
+          "application/json",
+          "text/plain"
+        ],
+        "tags": [
+          "vdc"
+        ],
+        "summary": "Moves a VDC from one infrastructure to another by:",
+        "operationId": "MoveVDC",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The indentifier of the VDC to move",
+            "name": "vdcId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The identifier of the infrastructure in which the VDC is actually serving requests.",
+            "name": "sourceInfra",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The identifier of the infrastructure that must serve requests from now on.",
+            "name": "targetInfra",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The IP and port of the VDC instance serving requests",
+            "schema": {
+              "$ref": "#/definitions/infrastructureInformation"
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "infrastructureInformation": {
+      "description": "infrastructureInformation contains information of a running VDC",
+      "type": "object",
+      "properties": {
+        "CAFPort": {
+          "description": "Port in which the CAF is serving",
+          "type": "integer",
+          "format": "int64"
+        },
+        "IP": {
+          "description": "IP of the infrastructure",
+          "type": "string"
+        },
+        "TombstonePort": {
+          "description": "Port of the tombstone",
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "x-go-package": "github.com/DITAS-Project/computation-movement-enactor"
+    }
+  }
+}
