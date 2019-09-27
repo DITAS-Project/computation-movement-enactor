@@ -104,7 +104,7 @@ func (h mainHandler) MoveVDC(w http.ResponseWriter, r *http.Request, ps httprout
 	//   500:
 	//     description: Internal error
 	vdcID := ps.ByName("vdcID")
-	params, err := h.getParams(r.URL.Query(), "sourceInfra", "targetInfra", "blueprintId")
+	params, err := h.getParams(r.URL.Query(), "sourceInfra", "targetInfra")
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
