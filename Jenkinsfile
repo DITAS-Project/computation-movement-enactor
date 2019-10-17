@@ -26,7 +26,7 @@ pipeline {
                 echo 'Creating the image...'
 		    
                 // This will search for a Dockerfile in the working directory and build the image to the local repository
-                sh "docker build -t \"ditas/computation-movement-enactor\" -f Dockerfile ."
+                sh "docker build -t \"ditas/computation-movement-enactor:staging\" -f Dockerfile ."
                 echo "Done"
 		    
                 // Get the password from a file. This reads the file from the host, not the container. Slaves already have the password in there.
@@ -40,8 +40,8 @@ pipeline {
                 sh "docker login -u ditasgeneric -p ${password}"
                 echo "Done"
 
-                echo "Pushing the image ditas/computation-movement-enactor:latest..."
-                sh "docker push ditas/computation-movement-enactor:latest"
+                echo "Pushing the image ditas/computation-movement-enactor:staging..."
+                sh "docker push ditas/computation-movement-enactor:staging"
                 echo "Done "
             }
         }
